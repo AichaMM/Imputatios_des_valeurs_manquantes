@@ -1,0 +1,193 @@
+---
+title: "izi"
+author: "Aicha Med El Moktar - 19067"
+date: "2023-04-23"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r}
+library(tidyverse)
+library(haven)
+library(VIM)
+library(mice)
+```
+
+```{r}
+df <- read.csv("C://Users/DELL//Downloads//menage_2019.csv", header = TRUE, sep = ";",fileEncoding="latin1")
+#head(df)
+```
+
+### Imputer A12 - Enquêté / Répondant
+Creer un sous-dataframe sans les valeurs manquantes de A12 et creer des nouvelles valeurs manquantes arbitraire
+
+```{r}
+df_nona <- df[!is.na(df$A12), ]
+set.seed(123)
+sample_indices <- sample(1:nrow(df_nona), round(0.4*nrow(df_nona)), replace=FALSE)
+A12_na = df_nona['A12']
+A12_na = data.frame(A12_na)
+A12_na[sample_indices,] = NA
+df_nona = data.frame(df_nona)
+df_nona['A12'] = A12_na
+
+```
+
+Imputation d'evaluation par mice :
+```{r}
+
+df_mice <- mice(df_nona[,c(24,25)], m=3,method = "pmm")
+
+```
+Evaluer :
+```{r}
+plot(density(df[!is.na(df$A12), ]$A12), main = "Density Comparison of mice", col = "blue", lwd = 2, ylim = c(0, 1))
+
+# Add a density plot for A12_na
+lines(density(as.numeric(unlist(df_mice$imp$A12))), col = "red", lwd = 2)
+```
+
+Imputation d'evaluation par : k-nn
+
+```{r}
+df_knn=kNN(df_nona,variable = 'A12',k=3)
+
+```
+Evaluer
+
+```{r}
+plot(density(df[!is.na(df$A12), ]$A12), main = "Density Comparison of K-nn", col = "blue", lwd = 2, ylim = c(0, 1))
+
+# Add a density plot for F6_na
+lines(density(df_knn$A12), col = "red", lwd = 2)
+
+```
+
+Imputation d'evaluation par : hotdeck
+
+```{r}
+df_hd = hotdeck(df_nona)
+
+```
+Evaluer
+
+```{r}
+plot(density(df[!is.na(df$A12), ]$A12), main = "Density Comparison of hotdeck", col = "blue", lwd = 2, ylim = c(0, 1))
+
+# Add a density plot for A12_na
+lines(density(df_hd$A12), col = "red", lwd = 2)
+
+```
+
+
+
+
+
+
+Imputation d'evaluation par : hotdeck
+
+```{r}
+df_hd = hotdeck(df_nona)
+
+```
+Evaluer
+
+```{r}
+plot(density(df[!is.na(df$A12), ]$A12), main = "Density Comparison of hotdeck", col = "blue", lwd = 2, ylim = c(0, 1))
+
+# Add a density plot for F6_na
+lines(density(df_hd$A12), col = "red", lwd = 2)
+
+```
+#-------------#imputation par hotdeck par class du valeur F3: Combien d'hectares de terres agricoles le ménage possède-t-il ?  (à la décimale près par exemple 24,7)#----------------#
+```{r}
+moy <- as.numeric(df$F3)
+if(all(is.numeric(df$F3))) {
+  moy <- as.numeric(df$F3)
+} else {
+  # traitement en cas de valeurs non numériques
+}
+
+#moy <- as.numeric(df$F3)
+moy[which(is.na(moy))] <- mean(moy, na.rm = TRUE)
+
+# Imputation par hotdeck par classe
+hotdeck <- df$F3
+cas_comp <- na.omit(df$F3)
+
+for (i in 1:length(hotdeck)){
+  if(is.na(hotdeck[i])){
+    hotdeck[i] <- sample(cas_comp,1,replace = FALSE) 
+  }
+}
+
+# Calcul et tracé de la densité de la variable moyenne
+dx <- density(moy, bw = 0.2)
+plot(dx, lwd = 2, col = "red", main = "Density")
+
+# Calcul et tracé de la densité de la variable originale
+dxx <- density(na.omit(as.numeric(df$F3)), bw = 0.2)
+lines(dxx, lwd = 2, col = "blue", main = "Density")
+
+# Création d'un nouveau dataframe pour stocker les données imputées
+imp_data <- data.frame(index = 1:length(df$F3), vrai_val = as.numeric(df$F3), moy = moy, hotdeck = hotdeck)
+
+
+```
+#-------------#imputation par moyenne du valeur F3 : Combien d'hectares de terres agricoles le ménage possède-t-il ?  (à la décimale près par exemple 24,7)#----------------#
+
+
+
+```{r}
+# Extraction de la variable numérique
+moy <- as.numeric(df$F3)
+moy[which(is.na(moy))] <- mean(moy, na.rm = TRUE)
+
+# Calcul de la densité
+densit1 <- density(moy)
+
+# Tracé de la densité
+plot(densit1, lwd = 2, col = "red", main = "Density")
+
+
+```
+### G6 : "Quelle est la principale source d'énergie (combustible) utilisée pour faire la cuisine ?"
+Produire un resume graphique de la variable G6 :
+
+
+On choisir les methodes hot-deck conditionnelle et cold-deck conditionnelle:
+
+Creer un sous-dataframe sans les valeurs manquantes de G6 et creer des nouvelles valeurs manquantes arbitraire de G6
+
+```{r}
+df_notna <- df[!is.na(df$G6), ]
+set.seed(123)
+sample_indices <- sample(1:nrow(df_notna), round(0.1*nrow(df_notna)), replace=FALSE)
+G6_na = df_notna['G6']
+G6_na = data.frame(G6_na)
+G6_na[sample_indices,] = NA
+df_notna = data.frame(df_notna)
+df_notna['G6_na'] = G6_na
+
+```
+
+```{r}
+table(df_notna$G6, useNA = "ifany")
+barplot(table(df_notna$G6, useNA = "ifany"))
+
+```
+
+Imputation : hotdeck conditionnel
+```{r}
+
+df_hd <- hotdeck(df_notna[,c('G6','G6_na','G3','G4','G5','G7')], domain_var = c('G3','G4','G5','G7'))
+accuracy <- sum(df_notna$G6[sample_indices] == df_hd$G6_na[sample_indices], na.rm = TRUE) / sum(!is.na(df_notna$G6[sample_indices]))
+print(accuracy)
+
+```
+
+```{r}
+
+
+````
